@@ -1,0 +1,15 @@
+on:
+  workflow_call:
+    secrets:
+      SLACK_DEPLOY_WEBHOOK: { required: true }
+jobs:
+  notify:
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_DEPLOY_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            {"text":":red_circle: Deploy FAILED — ${{ github.repository }} @ ${{ github.ref_name }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run> · ${{ github.actor }}"}
