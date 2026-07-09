@@ -36,6 +36,11 @@ on:
         type: boolean
         required: false
         default: true
+      registry:
+        description: Target registry, ghcr or docr
+        type: string
+        required: false
+        default: ghcr
     secrets:
       PRIVATE_REPO_TOKEN:
         description: Token for private Go module access
@@ -45,6 +50,9 @@ on:
         required: false
       files:
         description: 'Optional JSON object {"filename": "content"} written into the build context (e.g. an embedded kubeconfig); repos commit empty placeholders for files their Dockerfile copies'
+        required: false
+      DIGITALOCEAN_ACCESS_TOKEN:
+        description: Required when registry is docr
         required: false
 
 jobs:
@@ -127,11 +135,22 @@ jobs:
             type=raw,value=${{ inputs.channel }},enable=${{ inputs.channel != '' }}
 
       - name: Login to GitHub Container Registry
+        if: inputs.registry == 'ghcr'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup DigitalOcean CLI
+        if: inputs.registry == 'docr'
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Login to DigitalOcean Container Registry
+        if: inputs.registry == 'docr'
+        run: doctl registry login --expiry-seconds 1200
 
       - name: Build and push
         uses: docker/build-push-action@v6
