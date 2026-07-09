@@ -35,7 +35,7 @@ on:
       PRIVATE_REPO_TOKEN:
         description: Token for private Go module access
         required: true
-      env-vars:
+      env_vars:
         description: KEY=value lines baked into the image as runtime env (single-line values)
         required: false
       files:
@@ -73,7 +73,7 @@ jobs:
 
       - name: Write runtime env
         env:
-          ENV_VARS: ${{ secrets.env-vars }}
+          ENV_VARS: ${{ secrets.env_vars }}
         run: |
           python3 - <<'PY'
           import os
