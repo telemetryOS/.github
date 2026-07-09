@@ -90,13 +90,13 @@ jobs:
           PY
 
       - name: Write context files
-        if: ${{ secrets.files != '' }}
         env:
           FILES: ${{ secrets.files }}
         run: |
           python3 - <<'PY'
           import json, os
-          for name, content in json.loads(os.environ['FILES']).items():
+          raw = os.environ.get('FILES', '').strip()
+          for name, content in (json.loads(raw).items() if raw else []):
               assert '/' not in name and name not in ('.', '..')
               with open(name, 'w') as f:
                   f.write(content)
