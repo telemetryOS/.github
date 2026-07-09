@@ -5,7 +5,7 @@ name: Image Build (reusable)
 # optional env channel tag (development/qa/stage/production) marks which
 # environment the build feeds; deployment follows channel tags.
 #
-# Runtime configuration is passed via the env-vars secret (KEY=value lines):
+# Runtime configuration is passed via the env_vars secret (KEY=value lines):
 # the workflow writes it to runtime.env, which the Dockerfile copies in and
 # the entrypoint sources. Config files are not used. Interim mechanism — the
 # follow-up effort moves runtime config out of the image into Flux.
