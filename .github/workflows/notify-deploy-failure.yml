@@ -1,0 +1,22 @@
+name: Notify Deploy Failure (reusable)
+
+# Posts a Slack message when a caller's build/deploy job fails. Callers invoke
+# this with `secrets: inherit` and a `needs:`/`if: failure()` gate so it only
+# runs on the failure path.
+
+on:
+  workflow_call:
+    secrets:
+      SLACK_DEPLOY_WEBHOOK:
+        description: Slack incoming webhook URL to post the failure notice to
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        run: |
+          curl -sf -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\":rotating_light: *${{ github.repository }}* build failed on \`${{ github.ref_name }}\`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>\"}" \
+            "${{ secrets.SLACK_DEPLOY_WEBHOOK }}"
