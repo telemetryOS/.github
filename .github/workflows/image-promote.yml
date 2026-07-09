@@ -1,0 +1,52 @@
+name: Image Promote (reusable)
+
+# Assigns additional tags to an image that already exists in ghcr (identified
+# by its sha-<commit> tag) without rebuilding it. Used to move a build between
+# env channels (qa, production) and to stamp release versions (v26.6.2).
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: Full image name without tag
+        type: string
+        required: true
+      sha:
+        description: Commit sha of the existing sha-<sha> image tag
+        type: string
+        required: true
+      channel:
+        description: Env channel tag to assign (qa, production)
+        type: string
+        required: true
+      version:
+        description: Optional release version tag to assign, e.g. v26.6.2
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assign tags (no rebuild)
+        run: |
+          tags="-t ${{ inputs.image }}:${{ inputs.channel }}"
+          if [ -n "${{ inputs.version }}" ]; then
+            tags="$tags -t ${{ inputs.image }}:${{ inputs.version }}"
+          fi
+          docker buildx imagetools create $tags \
+            ${{ inputs.image }}:sha-${{ inputs.sha }}
+
+  notify-failure:
+    needs: [promote]
+    if: failure()
+    uses: telemetryOS/.github/.github/workflows/notify-deploy-failure.yml@main
+    secrets: inherit
