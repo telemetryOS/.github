@@ -147,6 +147,7 @@ jobs:
             type=ref,event=tag
             type=raw,value=sha-${{ steps.build_meta.outputs.sha }},enable=${{ inputs.sha_tag }}
             type=raw,value=${{ inputs.channel }},enable=${{ inputs.channel != '' }}
+            type=raw,value=latest,enable=${{ inputs.channel == 'development' }}
 
       - name: Login to GitHub Container Registry
         if: inputs.registry == 'ghcr'
