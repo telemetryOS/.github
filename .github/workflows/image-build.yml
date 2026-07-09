@@ -38,6 +38,9 @@ on:
       env-vars:
         description: KEY=value lines baked into the image as runtime env (single-line values)
         required: false
+      files:
+        description: 'Optional JSON object {"filename": "content"} written into the build context (e.g. an embedded kubeconfig); repos commit empty placeholders for files their Dockerfile copies'
+        required: false
 
 jobs:
   build:
@@ -84,6 +87,19 @@ jobs:
               lines.append(f"{key}='{quoted}'")
           with open('runtime.env', 'w') as f:
               f.write('\n'.join(lines) + '\n')
+          PY
+
+      - name: Write context files
+        if: ${{ secrets.files != '' }}
+        env:
+          FILES: ${{ secrets.files }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          for name, content in json.loads(os.environ['FILES']).items():
+              assert '/' not in name and name not in ('.', '..')
+              with open(name, 'w') as f:
+                  f.write(content)
           PY
 
       - name: Calculate metadata
