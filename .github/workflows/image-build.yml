@@ -51,6 +51,9 @@ on:
       files:
         description: 'Optional JSON object {"filename": "content"} written into the build context (e.g. an embedded kubeconfig); repos commit empty placeholders for files their Dockerfile copies'
         required: false
+      build_args:
+        description: 'Optional extra KEY=value docker build-args. Unlike env_vars these apply to ALL builds including pull requests — use only for build-time credentials a PR build legitimately needs (e.g. a private package registry token), never runtime config'
+        required: false
       DIGITALOCEAN_ACCESS_TOKEN:
         description: Required when registry is docr
         required: false
@@ -161,6 +164,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
+            ${{ secrets.build_args }}
             GITHUB_TOKEN=${{ secrets.PRIVATE_REPO_TOKEN }}
             GIT_COMMIT=${{ steps.build_meta.outputs.sha }}
             BUILD_VERSION=${{ steps.build_meta.outputs.version }}
