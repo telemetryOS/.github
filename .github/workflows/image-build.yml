@@ -43,8 +43,8 @@ on:
         default: ghcr
     secrets:
       PRIVATE_REPO_TOKEN:
-        description: Token for private Go module access
-        required: true
+        description: Token for private module access (Go services; UIs may omit)
+        required: false
       env_vars:
         description: KEY=value lines baked into the image as runtime env (single-line values)
         required: false
