@@ -41,6 +41,11 @@ on:
         type: string
         required: false
         default: ghcr
+      free_disk_space:
+        description: Reclaim runner disk before building (large images, e.g. CUDA/FFmpeg builds)
+        type: boolean
+        required: false
+        default: false
     secrets:
       PRIVATE_REPO_TOKEN:
         description: Token for private module access (Go services; UIs may omit)
@@ -63,6 +68,12 @@ jobs:
     name: Build and Publish
     runs-on: ubuntu-latest
     steps:
+      - name: Free disk space
+        if: inputs.free_disk_space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
