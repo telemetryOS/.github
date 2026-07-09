@@ -150,7 +150,7 @@ jobs:
 
       - name: Login to DigitalOcean Container Registry
         if: inputs.registry == 'docr'
-        run: doctl registry login --expiry-seconds 1200
+        run: doctl registry login --expiry-seconds 900
 
       - name: Build and push
         uses: docker/build-push-action@v6
