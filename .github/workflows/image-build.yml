@@ -31,6 +31,11 @@ on:
         type: string
         required: false
         default: ''
+      sha_tag:
+        description: Tag the image sha-<commit>. Disable on derived builds (qa, production) so the canonical build owns the sha tag
+        type: boolean
+        required: false
+        default: true
     secrets:
       PRIVATE_REPO_TOKEN:
         description: Token for private Go module access
@@ -72,18 +77,23 @@ jobs:
             echo "built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> "$GITHUB_OUTPUT"
 
+      # PR builds never bake env or files: the committed placeholders stay in
+      # place, so pr-<n> images run on defaults and carry no credentials.
       - name: Write runtime env
+        if: github.event_name != 'pull_request'
         env:
           ENV_VARS: ${{ secrets.env_vars }}
         run: |
           python3 - <<'PY'
-          import os
+          import os, re, sys
           lines = []
           for line in os.environ.get('ENV_VARS', '').splitlines():
               line = line.strip()
               if not line or line.startswith('#'):
                   continue
-              key, _, value = line.partition('=')
+              key, sep, value = line.partition('=')
+              if not sep or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', key):
+                  sys.exit(f"invalid env_vars line (multi-line value or bad key?): {key[:40]!r}")
               quoted = value.replace("'", "'\\''")
               lines.append(f"{key}='{quoted}'")
           with open('runtime.env', 'w') as f:
@@ -91,6 +101,7 @@ jobs:
           PY
 
       - name: Write context files
+        if: github.event_name != 'pull_request'
         env:
           FILES: ${{ secrets.files }}
         run: |
@@ -109,10 +120,10 @@ jobs:
         with:
           images: ${{ inputs.image }}
           tags: |
-            type=ref,event=branch
+            type=ref,event=branch,enable=${{ inputs.ref == '' }}
             type=ref,event=pr
             type=ref,event=tag
-            type=raw,value=sha-${{ steps.build_meta.outputs.sha }}
+            type=raw,value=sha-${{ steps.build_meta.outputs.sha }},enable=${{ inputs.sha_tag }}
             type=raw,value=${{ inputs.channel }},enable=${{ inputs.channel != '' }}
 
       - name: Login to GitHub Container Registry
