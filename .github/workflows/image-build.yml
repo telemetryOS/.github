@@ -142,7 +142,7 @@ jobs:
         with:
           images: ${{ inputs.image }}
           tags: |
-            type=ref,event=branch,enable=${{ inputs.ref == '' }}
+            type=ref,event=branch,enable=${{ inputs.ref == '' && inputs.channel != 'qa' }}
             type=ref,event=pr
             type=ref,event=tag
             type=raw,value=sha-${{ steps.build_meta.outputs.sha }},enable=${{ inputs.sha_tag }}
