@@ -108,15 +108,27 @@ jobs:
         run: |
           python3 - <<'PY'
           import os, re, sys
-          lines = []
-          for line in os.environ.get('ENV_VARS', '').splitlines():
-              line = line.strip()
+          # KEY=value lines. A line that does not start a new KEY= entry is
+          # folded back into the previous value: secrets stored with real
+          # newlines (e.g. a pretty-printed FCM service-account JSON) pass
+          # through verbatim instead of failing the build. Values are
+          # single-quoted, so multiline values source correctly in the
+          # entrypoint's `. ./runtime.env`.
+          entries = []
+          for raw in os.environ.get('ENV_VARS', '').splitlines():
+              line = raw.strip()
               if not line or line.startswith('#'):
                   continue
               key, sep, value = line.partition('=')
-              if not sep or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', key):
-                  sys.exit(f"invalid env_vars line (multi-line value or bad key?): {key[:40]!r}")
-              quoted = value.replace("'", "'\\''")
+              if sep and re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', key):
+                  entries.append((key, [value]))
+              elif entries:
+                  entries[-1][1].append(line)
+              else:
+                  sys.exit(f"invalid env_vars line (bad key?): {line[:40]!r}")
+          lines = []
+          for key, parts in entries:
+              quoted = '\n'.join(parts).replace("'", "'\\''")
               lines.append(f"{key}='{quoted}'")
           with open('runtime.env', 'w') as f:
               f.write('\n'.join(lines) + '\n')
