@@ -120,7 +120,11 @@ jobs:
               if not line or line.startswith('#'):
                   continue
               key, sep, value = line.partition('=')
-              if sep and re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', key):
+              # Runtime keys follow the portable uppercase environment-variable
+              # convention. Restricting detection to that shape prevents a
+              # padded base64 line inside a PEM secret (for example `abc=`)
+              # from being misclassified as the start of another variable.
+              if sep and re.fullmatch(r'[A-Z_][A-Z0-9_]*', key):
                   entries.append((key, [value]))
               elif entries:
                   entries[-1][1].append(line)
