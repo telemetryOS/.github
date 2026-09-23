@@ -46,9 +46,17 @@ on:
         type: boolean
         required: false
         default: false
+      validate_secrets_on_pull_request:
+        description: Also validate required_secrets on PR builds; runtime-only secrets normally are not needed there
+        type: boolean
+        required: false
+        default: false
     secrets:
       PRIVATE_REPO_TOKEN:
         description: Token for private module access (Go services; UIs may omit)
+        required: false
+      required_secrets:
+        description: 'Optional JSON object mapping required secret names to values; checked inline before building, with only missing names logged'
         required: false
       env_vars:
         description: KEY=value lines baked into the image as runtime env (single-line values)
@@ -68,6 +76,35 @@ jobs:
     name: Build and Publish
     runs-on: ubuntu-latest
     steps:
+      - name: Validate required secrets
+        if: github.event_name != 'pull_request' || inputs.validate_secrets_on_pull_request
+        env:
+          REQUIRED_SECRETS: ${{ secrets.required_secrets }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, sys
+          raw = os.environ.get('REQUIRED_SECRETS', '').strip()
+          if not raw:
+              sys.exit(0)
+          try:
+              required = json.loads(raw)
+          except json.JSONDecodeError:
+              sys.exit('required_secrets must be a JSON object of secret names and values')
+          if not isinstance(required, dict) or any(
+              not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name)
+              or not isinstance(value, str)
+              for name, value in required.items()
+          ):
+              sys.exit('required_secrets must map secret names to string values')
+          missing = [name for name, value in required.items() if not value]
+          if missing:
+              print('Missing required secrets:')
+              for name in missing:
+                  print(f'  - {name}')
+              sys.exit(1)
+          print('All required secrets are present.')
+          PY
+
       - name: Free disk space
         if: inputs.free_disk_space
         uses: jlumbroso/free-disk-space@main
